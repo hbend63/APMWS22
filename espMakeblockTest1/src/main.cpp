@@ -21,11 +21,13 @@ String toMessage(String message, int value)
     DynamicJsonDocument doc(1024);
     doc["message"]=message;
     doc["value"]=value;
-    String s1=String(value);
+    String s1=String(value); // Needed to calculate length
     String output0;
     
-    serializeJson(doc, output0);
+    serializeJson(doc, output0); // Serialize Json Document to output String
 
+    // Necessary correction for Makeblock-Communication. The Output String needs Spaces to be
+    // added after every : and ,
     String output=""; 
     for (int i=0; i < output0.length(); i++)
     {
@@ -35,23 +37,23 @@ String toMessage(String message, int value)
     }
     
 
-    // String wird komplett zusammengesetzt. Für # werden die Steuerkennzeichen eingefügt   
+    // Build Communication-String. Exchange #-Marks with control codes   
     String toSend{"#####"+output+"###"}; 
     int len=toSend.length();
     // Vorspann #####
-    toSend[0]=(char)0xf3; // Steuerkennzeichen Start
+    toSend[0]=(char)0xf3; // Code Start
     toSend[1]=(char)(15+message.length()+s1.length()); // Steuerkennzeichen Länge der Message ohne Wert
     toSend[2]=(char)(output.length()+2); // Steuerkennzeichen Länge der gesamten Message mit Wert
-    toSend[3]=(char)(0); // Steuerkennzeichen immer Null
-    toSend[4]=(char)(3); // Steuerkennzeichen immer Drei
-    // Prüfsummenberechnung über alle Bytes von Byte 3 bis Byte len-3
-    uint8_t psum=0;
-    for (int i=3; i<len-3;i++)
-      psum+=(uint8_t)toSend[i];
+    toSend[3]=(char)(0); // Code 0
+    toSend[4]=(char)(3); // Code 3
+    // Calculate Checksum for output String
+    uint8_t psum=3;
+    for (int i=0; i<output.length();i++)
+      psum+=(uint8_t)output[i];
     // Nachspann ###
-    toSend[len-3]=(char)(0);  // Steuerkennzeichen immer Null
-    toSend[len-2]=(char)(psum); // Steuerkennzeichen Prüfsumme
-    toSend[len-1]=(char)(0xf4); // Steuerkennzeichen Ende
+    toSend[len-3]=(char)(0);  // Code 0
+    toSend[len-2]=(char)(psum); // Code Checksum
+    toSend[len-1]=(char)(0xf4); // Code End
     Serial.println("My message");
     
     for (int i=0; i < toSend.length(); i++)
@@ -210,9 +212,9 @@ void setup()
   // Connect to AP
   WiFi.begin("MBotAccess","makeblock");
   while (!WiFi.isConnected());
-  // Get Channel
+  // Get Channel for ESP-Now
   CHANNEL=WiFi.channel();
-  
+
   Serial.println("ESP-NOW Broadcast Demo");
  
   // Print MAC address
@@ -221,9 +223,6 @@ void setup()
  
   // Disconnect from WiFi
   WiFi.disconnect();
-
- 
-
  
   // Initialize ESP-NOW
   if (esp_now_init() == ESP_OK)
