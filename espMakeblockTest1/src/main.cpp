@@ -11,19 +11,37 @@
 // Include Libraries
 #include <WiFi.h>
 #include <esp_now.h>
+#include <ArduinoJson.h>
 
 int CHANNEL=6;
 
 
-String toMessage(String message, String value)
+String toMessage(String message, int value)
 {
+    DynamicJsonDocument doc(1024);
+    doc["message"]=message;
+    doc["value"]=value;
+    String s1=String(value);
+    String output0;
+    
+    serializeJson(doc, output0);
+
+    String output=""; 
+    for (int i=0; i < output0.length(); i++)
+    {
+      output += output0[i];
+      if ((output0[i]==':') || (output0[i]==','))
+        output += ' ';
+    }
+    
+
     // String wird komplett zusammengesetzt. Für # werden die Steuerkennzeichen eingefügt   
-    String toSend{"#####{\"message\": "+message+", \"value\": "+value+"}###"}; 
+    String toSend{"#####"+output+"###"}; 
     int len=toSend.length();
     // Vorspann #####
     toSend[0]=(char)0xf3; // Steuerkennzeichen Start
-    toSend[1]=(char)(16+message.length()); // Steuerkennzeichen Länge der Message ohne Wert
-    toSend[2]=(char)(26+message.length()+value.length()); // Steuerkennzeichen Länge der gesamten Message mit Wert
+    toSend[1]=(char)(15+message.length()+s1.length()); // Steuerkennzeichen Länge der Message ohne Wert
+    toSend[2]=(char)(output.length()+2); // Steuerkennzeichen Länge der gesamten Message mit Wert
     toSend[3]=(char)(0); // Steuerkennzeichen immer Null
     toSend[4]=(char)(3); // Steuerkennzeichen immer Drei
     // Prüfsummenberechnung über alle Bytes von Byte 3 bis Byte len-3
@@ -63,18 +81,27 @@ void fromMessage(const String input, String &message, String &value)
  
   if ((input[0]==0xf3) && (input[input.length()-1]==0xf4))
   {
-
-     int l1= input[1];
-     int l2= input[2];
-    
-     String st1=input.substring(6,l1);
-     String st2=input.substring(l1+2,l2+1);
-    
-     message=st1.substring(st1.indexOf(':')+1,st1.length());
-     value=st2.substring(st2.indexOf(':')+1,st2.length());
-    
-     Serial.print("Message: "); Serial.println(message);
-     Serial.print("Value: "); Serial.println(value);
+     const int offset=3;
+     int l1= input[2];
+     String json=input.substring(offset+2,l1+offset);
+     Serial.print("JSON-String: "); Serial.println(json);
+     // Allocate the JSON document
+     //
+     // Inside the brackets, 200 is the capacity of the memory pool in bytes.
+     // Don't forget to change this value to match your JSON document.
+     // Use https://arduinojson.org/v6/assistant to compute the capacity.
+     StaticJsonDocument<200> doc;
+     DeserializationError error = deserializeJson(doc, json);
+     // Test if parsing succeeds.
+    if (error) {
+       Serial.print(F("deserializeJson() failed: "));
+       Serial.println(error.f_str());
+       return;
+    }
+    String message = doc["message"];
+    String value = doc["value"];    
+    Serial.print("message: ");Serial.println(message);
+    Serial.print("value  : ");Serial.println(value);
   }  
 } 
  
@@ -214,8 +241,8 @@ void setup()
 }
 
 
-String message="\"message\"";
-String value="100";
+String message="oo";
+int value=1;
  
 void loop()
 {  
