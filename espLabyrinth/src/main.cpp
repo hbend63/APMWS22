@@ -4,10 +4,21 @@
 #include <ArduinoJson.h>
 #include "FastLED.h"
 
-#define NUM_LEDS 10
+#define NUM_LEDS 38
+#define X_MAX 8
+#define Y_MAX 6
+
 CRGB leds[NUM_LEDS];
 bool ledStates[NUM_LEDS]{0};
 
+struct position
+{
+  // Konstruktor, damit korrekt initialisiert wird.
+  position(String s,int x, int y, int led): uid(s), x(x),y(y),LEDadress(led) {};
+  String uid;
+  int x,y;
+  int LEDadress;
+};
 
 int score{0};
 
@@ -21,7 +32,65 @@ esp_now_peer_info_t slaves[NUMSLAVES] = {};
 int SlaveCnt = 0;
 String slavePos[2][NUMSLAVES] = {};
 
-String uidList[3] = {"2d277fa8","da9b0eb0","04bc21d1700000"};
+//String uidList[3] = {"2d277fa8","da9b0eb0","04bc21d1700000"};
+
+// Positopnen der RFID_Tags im x-y-Raster
+position tagList[X_MAX*Y_MAX] =
+{position("8de524a8",0,0,0),
+ position("8d6629a8",1,0,1),
+ position("4de524a8",2,0,0),
+ position("5db52ba8",3,0,1),
+ position("fd1234a8",4,0,0),
+ position("4d8432a8",5,0,1),
+ position("ddb52ba8",6,0,0),
+ position("9d0c2ea8",7,0,1),
+
+ position("ad4025a8",0,1,0),
+ position("1d3227a8",1,1,1),
+ position("6d4025a8",2,1,0),
+ position("5d082ba8",3,1,1),
+ position("fdf531a8",4,1,0),
+ position("bdf531a8",5,1,1),
+ position("9ddb35a8",6,1,0),
+ position("7d6030a8",7,1,1),
+
+ position("4d6629a8",0,2,0),
+ position("1dd328a8",1,2,1),
+ position("ada626a8",2,2,0),
+ position("9d082ba8",3,2,1),
+ position("dd032ea8",4,2,0),
+ position("5d0d2ea8",5,2,1),
+ position("cd1536a8",6,2,0),
+ position("1d092ba8",7,2,1),
+
+ position("dd3127a8",0,3,0),
+ position("5d3227a8",1,3,1),
+ position("ad602da8",2,3,0),
+ position("ddd228a8",3,3,1),
+ position("5db32fa8",4,3,0),
+ position("3d6130a8",5,3,1),
+ position("1d1636a8",6,3,0),
+ position("6d612da8",7,3,1),
+
+ position("0d6729a8",0,4,0),
+ position("cd6629a8",1,4,1),
+ position("5dd328a8",2,4,0),
+ position("8d8432a8",3,4,1),
+ position("1d0d2ea8",4,4,0),
+ position("adb72fa8",5,4,1),
+ position("5d8034a8",6,4,0),
+ position("2db72fa8",7,4,1),
+
+ position("1db52ba8",0,5,0),
+ position("9dd328a8",1,5,1),
+ position("dd3227a8",2,5,0),
+ position("7d8334a8",3,5,1),
+ position("fd6030a8",4,5,0),
+ position("dd0c2ea8",5,5,1),
+ position("6db72fa8",6,5,0),
+ position("bd6030a8",7,5,1)
+};
+//
 String stopUID = "f3aa90a9";
 
 void initLED();
@@ -31,7 +100,7 @@ int findTag(String uid)
   int i=0;
   while (i<3) 
   {
-    if (uid==uidList[i])
+    if (uid==tagList[i].uid)
        return i;
     i++;
   }
@@ -334,7 +403,7 @@ void initLED()
   FastLED.addLeds<NEOPIXEL, 16>(leds, NUM_LEDS); 
   // Checkrun
   for (int i=0; i < NUM_LEDS; i++)
-    leds[i] = CRGB::Yellow; FastLED.show();
+    leds[i] = CRGB::Green; FastLED.show();
   delay(200);
   for (int i=0; i < NUM_LEDS; i++)
   {
@@ -344,7 +413,7 @@ void initLED()
   // All on
   for (int i=0; i < NUM_LEDS; i++)
   {
-    leds[i] = CRGB::Yellow; FastLED.show();
+    leds[i] = CRGB::Green; FastLED.show();
     ledStates[i] = true; // on
     score=0;
   }  
